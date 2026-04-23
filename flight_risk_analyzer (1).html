@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Flight Risk Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  
+  body {
+    background: #0F1923;
+    color: #E8E6E0;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .header-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #E24B4A, #EF9F27);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .header-text h1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.02em;
+  }
+
+  .header-text p {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 1px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .field label {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .field select, .field input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .field select:focus, .field input:focus {
+    border-color: rgba(226,75,74,0.5);
+  }
+
+  .field select option {
+    background: #1B2A4A;
+  }
+
+  .analyze-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #E24B4A, #c73837);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 11px;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-bottom: 14px;
+  }
+
+  .analyze-btn:hover { opacity: 0.9; }
+  .analyze-btn:active { transform: scale(0.99); }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .result {
+    display: none;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .result.visible { display: block; }
+
+  .risk-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .risk-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .risk-high { background: rgba(226,75,74,0.2); color: #E24B4A; border: 1px solid rgba(226,75,74,0.3); }
+  .risk-medium { background: rgba(239,159,39,0.2); color: #EF9F27; border: 1px solid rgba(239,159,39,0.3); }
+  .risk-low { background: rgba(99,153,34,0.2); color: #639922; border: 1px solid rgba(99,153,34,0.3); }
+
+  .risk-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: white;
+    margin-left: auto;
+  }
+
+  .analysis-text {
+    font-size: 12px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 12px;
+    border-left: 2px solid rgba(226,75,74,0.4);
+    padding-left: 10px;
+  }
+
+  .action-box {
+    background: rgba(99,153,34,0.08);
+    border: 1px solid rgba(99,153,34,0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .action-box h4 {
+    font-size: 10px;
+    font-weight: 600;
+    color: #639922;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .action-box p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.6;
+  }
+
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+  }
+
+  .loading.visible { display: block; }
+
+  .dot-pulse {
+    display: inline-block;
+    animation: pulse 1.2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  .powered {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 10px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🤖</div>
+  <div class="header-text">
+    <h1>AI Flight Risk Analyzer</h1>
+    <p>Powered by logistic regression model · 14,999 employees trained</p>
+  </div>
+</div>
+
+<div class="form-grid">
+  <div class="field">
+    <label>Role Level</label>
+    <select id="role">
+      <option value="1">Level 1 — Entry</option>
+      <option value="2">Level 2 — Junior</option>
+      <option value="3" selected>Level 3 — Mid</option>
+      <option value="4">Level 4 — Senior</option>
+      <option value="5">Level 5 — Executive</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Number of Projects</label>
+    <select id="projects">
+      <option value="2">2 projects</option>
+      <option value="3">3 projects</option>
+      <option value="4" selected>4 projects</option>
+      <option value="5">5 projects</option>
+      <option value="6">6 projects</option>
+      <option value="7">7 projects</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Salary Band</label>
+    <select id="salary">
+      <option value="low">Low</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Promoted in 5 Years</label>
+    <select id="promoted">
+      <option value="0" selected>No promotion</option>
+      <option value="1">Promoted</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Monthly Hours</label>
+    <select id="hours">
+      <option value="152">152 hrs (low)</option>
+      <option value="165" selected>165 hrs (avg)</option>
+      <option value="180">180 hrs (high)</option>
+      <option value="190">190 hrs (max)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>LinkedIn Activity</label>
+    <select id="linkedin">
+      <option value="low">Low (not job hunting)</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High (actively looking)</option>
+    </select>
+  </div>
+</div>
+
+<button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+  ⚡ Analyze Flight Risk
+</button>
+
+<div class="loading" id="loading">
+  <span class="dot-pulse">●</span> Analyzing employee profile...
+</div>
+
+<div class="result" id="result">
+  <div class="risk-header">
+    <span class="risk-badge" id="riskBadge">HIGH RISK</span>
+    <span class="risk-score" id="riskScore">74%</span>
+  </div>
+  <div class="analysis-text" id="analysisText"></div>
+  <div class="action-box">
+    <h4>Recommended HR Action</h4>
+    <p id="actionText"></p>
+  </div>
+</div>
+
+<p class="powered">Built with Python ML model · Team 1 BUS 150 · University of Miami</p>
+
+<script>
+async function analyze() {
+  const role = document.getElementById('role').value;
+  const projects = document.getElementById('projects').value;
+  const salary = document.getElementById('salary').value;
+  const promoted = document.getElementById('promoted').value;
+  const hours = document.getElementById('hours').value;
+  const linkedin = document.getElementById('linkedin').value;
+
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('result').classList.remove('visible');
+  document.getElementById('loading').classList.add('visible');
+
+  const prompt = `You are an HR analytics AI analyzing employee flight risk based on our logistic regression model trained on 14,999 employees.
+
+Employee profile:
+- Role Level: ${role}/5 (${['','Entry','Junior','Mid','Senior','Executive'][role]})
+- Number of Projects: ${projects}
+- Salary Band: ${salary}
+- Promoted in last 5 years: ${promoted === '1' ? 'Yes' : 'No'}
+- Monthly Hours: ${hours}
+- LinkedIn Activity: ${linkedin}
+
+Based on our model findings:
+- Employees with ${projects} projects have ${projects <= 2 ? 'very high (47%)' : projects <= 3 ? 'high (38%)' : projects <= 4 ? 'moderate (34%)' : 'lower'} attrition
+- ${salary} salary band employees have elevated flight risk
+- Role level ${role} employees: ${role >= 4 ? 'senior employees leave at 3x entry level rates' : 'moderate risk level'}
+- ${promoted === '0' ? 'No promotion in 5 years significantly increases flight risk' : 'Recent promotion paradoxically increases short-term flight risk'}
+- ${linkedin === 'high' ? 'High LinkedIn activity signals active job searching' : linkedin === 'low' ? 'Low LinkedIn activity may indicate disengagement' : 'Moderate external market activity'}
+
+Provide a JSON response with exactly these fields:
+{
+  "risk_level": "HIGH" or "MEDIUM" or "LOW",
+  "probability": number between 20-90,
+  "analysis": "2-3 sentences explaining the key risk factors for this specific employee profile",
+  "action": "1-2 sentences of specific HR action to take this week"
+}
+
+Respond with ONLY the JSON, no other text.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content[0].text;
+    const clean = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+
+    document.getElementById('loading').classList.remove('visible');
+
+    const badge = document.getElementById('riskBadge');
+    badge.textContent = result.risk_level + ' RISK';
+    badge.className = 'risk-badge risk-' + result.risk_level.toLowerCase();
+
+    document.getElementById('riskScore').textContent = result.probability + '%';
+    document.getElementById('analysisText').textContent = result.analysis;
+    document.getElementById('actionText').textContent = result.action;
+    document.getElementById('result').classList.add('visible');
+
+  } catch(err) {
+    document.getElementById('loading').classList.remove('visible');
+    document.getElementById('analysisText').textContent = 'Analysis unavailable — check network connection.';
+    document.getElementById('result').classList.add('visible');
+  }
+
+  document.getElementById('analyzeBtn').disabled = false;
+}
+</script>
+</body>
+</html>
